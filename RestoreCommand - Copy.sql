@@ -219,21 +219,7 @@ WHILE @@FETCH_STATUS = 0
 			RAISERROR(@message,10,1) WITH NOWAIT
 		END
 	
-	DECLARE @MoveList NVARCHAR(MAX)
-	SET @MoveList = ''
-	IF @Command LIKE '%RESTORE DATABASE%' -- Only for full backups
-	BEGIN
-	    SELECT @MoveList = @MoveList + ', MOVE N''' + name + ''' TO N''' + physical_name + ''''
-	    FROM sys.master_files
-	    WHERE database_id = DB_ID(@DatabaseName)
-	    -- Remove everything from the first WITH onwards (case-insensitive)
-	    DECLARE @WithPos INT = PATINDEX('%WITH %', UPPER(@Command));
-	    IF @WithPos > 0
-	        SET @Command = LEFT(@Command, @WithPos - 1);
-	    -- Add MOVE list and restore options
-	    SET @Command = RTRIM(@Command) + ' WITH' + STUFF(@MoveList, 1, 1, '') + ' , NORECOVERY, REPLACE;';
-	END
-	RAISERROR(@Command, 10, 1) WITH NOWAIT
+	RAISERROR( @Command,10,1) WITH NOWAIT
 
 	SET @DatabaseNamePartition = @DatabaseName
 FETCH NEXT FROM restorecursor

@@ -24,10 +24,10 @@ For intro / tutorial, see https://jaredzagelbaum.wordpress.com/2015/04/16/automa
 Follow me on Twitter!: @JaredZagelbaum
 
 **************************************************************************************************************/
-
+exec xp_cmdshell 'md B:\SQLBackup\!restore_scripts'
 --Create restore command jobs
-Declare @DatabaseName sysname = N'master'				-- Provide db location of maintenance solution and RestoreCommand
-Declare @RestoreScriptDir nvarchar(max) = 'Backup_Dir'  -- Choose restore script location: 'Backup_Dir', 'Error_Log', or custom defined dir, e.g., 'C:\' . Directory must be created first if custom!
+Declare @DatabaseName sysname = N'dbadmin'				-- Provide db location of maintenance solution and RestoreCommand
+Declare @RestoreScriptDir nvarchar(max) = 'B:\SQLBackup\!restore_scripts'--'Backup_Dir'  -- Choose restore script location: 'Backup_Dir', 'Error_Log', or custom defined dir, e.g., 'C:\' . Directory must be created first if custom!
 
 
 
@@ -46,7 +46,8 @@ Declare @RestoreCommand nvarchar(max)
 
 IF @RestoreScriptDir NOT IN ('Error_Log', 'Backup_Dir')
 BEGIN
-	SET @RestoreScriptDirValue =  @RestoreScriptDir +  '\$(ESCAPE_SQUOTE(SRVR))\$(ESCAPE_SQUOTE(SRVR))_DatabaseRestore_$(ESCAPE_SQUOTE(STRTDT))_$(ESCAPE_SQUOTE(STRTTM)).txt'
+	--SET @RestoreScriptDirValue =  @RestoreScriptDir +  '\$(ESCAPE_SQUOTE(SRVR))\$(ESCAPE_SQUOTE(SRVR))_DatabaseRestore_$(ESCAPE_SQUOTE(STRTDT))_$(ESCAPE_SQUOTE(STRTTM)).txt'
+	SET @RestoreScriptDirValue =  @RestoreScriptDir +  '\$(ESCAPE_SQUOTE(SRVR))_DatabaseRestore_$(ESCAPE_SQUOTE(STRTDT))_$(ESCAPE_SQUOTE(STRTTM)).sql'
 END
 
 IF @RestoreScriptDir = 'Error_Log'
@@ -108,11 +109,28 @@ END
 
 
 
+
+
+
 		EXEC msdb.dbo.sp_update_jobstep 
 		 @job_id=@jobID 
 		,@step_id = 1 
 		,@on_success_action=3
 		,@on_fail_action=2       
+
+
+		DECLARE @step_id INT;
+
+		SELECT @step_id = step_id
+		FROM msdb.dbo.sysjobsteps
+		WHERE job_id = @jobid AND step_name = N'Generate Restore Script';
+
+		IF @step_id IS NOT NULL
+		BEGIN
+			EXEC msdb.dbo.sp_delete_jobstep @job_id = @jobid, @step_id = @step_id;
+		END
+
+
 		
 		EXEC msdb.dbo.sp_add_jobstep
 		 @job_id = @jobid
